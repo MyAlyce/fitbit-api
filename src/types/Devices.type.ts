@@ -4,7 +4,7 @@ export type Device = {
     battery: 'High' | 'Medium' | 'Low' | 'Empty';
     batteryLevel: number;
     deviceVersion: string;
-    features: any[];
+    features: unknown[];
     id: string;
     lastSyncTime: string;
     mac: string;

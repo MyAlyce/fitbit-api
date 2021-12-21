@@ -3,8 +3,8 @@ export interface Badge {
     badgeGradientStartColor: string;
     badgeType:               BadgeType;
     category:                string;
-    /** Type unkown */
-    cheers:                  any[];
+    /** Type unknown */
+    cheers:                  unknown[];
     dateTime:                string;
     description:             string;
     earnedMessage:           string;

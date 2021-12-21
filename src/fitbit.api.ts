@@ -269,7 +269,7 @@ export class FitbitApi {
         getProfile: () =>
             this.handleData<{ user: FitbitProfile; }>(() => this.api.get(this.url(1, `profile.json`))),
 
-        /** Modifies a user's profile data. (Doesn't work becouse of fitbit servers?)
+        /** Modifies a user's profile data.
          * 
          * https://dev.fitbit.com/build/reference/web-api/user/update-profile/
          */
@@ -282,7 +282,7 @@ export class FitbitApi {
             height: string,
             /** This is a short description of user. */
             aboutMe: string,
-            /** The fullname of the user. */
+            /** The full name of the user. */
             fullname: string,
             /** The country of the user's residence. This is a two-character code. */
             country: string,
@@ -528,7 +528,7 @@ export class FitbitApi {
          * https://dev.fitbit.com/build/reference/web-api/activity/create-favorite-activity/
          */
         createFavorite: (activityId: id) =>
-            this.handleData<{}>(() => this.api.post(this.url(1, `activities/favorite/${activityId}.json`))),
+            this.handleData<Record<string, never>>(() => this.api.post(this.url(1, `activities/favorite/${activityId}.json`))),
 
         /** Adds the activity with the given ID to user's list of favorite activities.
          * 
@@ -563,8 +563,6 @@ export class FitbitApi {
          */
         getFrequent: () =>
             this.handleData<RecentActivity>(() => this.api.get(this.url(1, `activities/frequent.json`))),
-
-        // TODO: implement 'Get Activity TCX' https://dev.fitbit.com/build/reference/web-api/activity/get-activity-tcx/
 
         /** Returns time series data in the specified range for weight, fat, or bmi.
          * 
@@ -745,7 +743,7 @@ export class FitbitApi {
              * 
              * https://dev.fitbit.com/build/reference/web-api/nutrition/create-food#Additional-Nutritional-Information
              */
-            addNutritionInfo: string = ''
+            addNutritionInfo = ''
         ) =>
             this.handleData<{ food: CustomFood }>(() => this.api.post(this.url(1, `foods.json${dictToUrlParams(params)}${addNutritionInfo}`))),
 
@@ -859,11 +857,11 @@ export class FitbitApi {
             }
         >(opts: O & { logId: id; amount: number; }) => {
             const { logId, data } = opts;
-            const params = objRemoveKeys(opts, ['data', 'logId']);
+            const params = objRemoveKeys(opts, ['data', 'logId']) as Dict<string | number>;
 
             this.handleData<
                 O['data'] extends 'water' ? { waterLog: WaterLog } : { foodLog: FoodLog }
-            >(() => this.api.post(this.url(1, `foods/log${data === 'water' ? '/water' : ''}/${logId}.json${dictToUrlParams(params as any)}`)))
+            >(() => this.api.post(this.url(1, `foods/log${data === 'water' ? '/water' : ''}/${logId}.json${dictToUrlParams(params)}`)))
         },
 
 
@@ -929,7 +927,7 @@ export class FitbitApi {
          * https://dev.fitbit.com/build/reference/web-api/nutrition/add-favorite-foods/
          */
         addFavoriteFood: (foodId: id) =>
-            this.handleData<{}>(() => this.api.post(this.url(1, `foods/log/favorite/${foodId}.json`))),
+            this.handleData<Record<string, never>>(() => this.api.post(this.url(1, `foods/log/favorite/${foodId}.json`))),
         
         /** Retrieves a list of user-specific favorite consumed foods.
          * 
@@ -1092,6 +1090,7 @@ export class FitbitApi {
                 if (code !== 500) throw new Error('Unhandled Error');
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             json = null as any;
         }
 
@@ -1135,10 +1134,10 @@ export class FitbitApi {
 
     private async pageGenerator<O extends { pagination: Pagination; }, T>(startingUrl: string, dataKey: string) {
         let lastResponse = await this.handleData<O>(() => this.api.get(startingUrl));
-        const that = this;
 
-        return (async function* () {
+        return (async function* (self: FitbitApi) {
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let allData: T[] = lastResponse.isSuccess ? [...(lastResponse.data as any)[dataKey] as T[]] : [];
             let totalCalls = 1;
 
@@ -1149,17 +1148,18 @@ export class FitbitApi {
 
             let nextUrl = lastResponse.data.pagination.next;
             while (nextUrl) {
-                lastResponse = await that.handleData<O>(() => that.api.get(nextUrl));
+                lastResponse = await self.handleData<O>(() => self.api.get(nextUrl));
                 totalCalls++;
                 if (lastResponse.type === 'ERROR') return getObj();
 
                 nextUrl = lastResponse.data.pagination.next;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 allData = [...allData, ...(lastResponse.data as any)[dataKey] as T[]];
 
                 if (nextUrl) yield getObj();
             }
 
             return getObj();
-        })();
+        })(this);
     }
 }

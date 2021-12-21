@@ -1,14 +1,29 @@
 {
   "name": "fitbit-api",
   "version": "0.1.0",
-  "main": "index.js",
-  "engines": {
-    "node": ">=14"
+  "description": "A fitbit web-api utility that is meant to be comprehensive and type-safe",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MyAlyce/fitbit-api"
   },
-  "scripts": {},
-  "devDependencies": {},
+  "scripts": {
+    "publish-script": "---TODO---",
+    "test": "---TODO---",
+    "lint": "eslint ./src --ext .ts",
+    "playground:node": "---TODO---",
+    "playground:web": "---TODO---"
+  },
   "dependencies": {
     "@giveback007/util-lib": "0.23.0",
-    "rest-api-handler": "^2.21.9"
+    "rest-api-handler": "2.21.9",
+    "tslib": "~2.3.1"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "eslint": "^8.5.0",
+    "typescript": "^4.5.4"
   }
 }
