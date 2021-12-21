@@ -1,12 +1,13 @@
 QUICK TODOS:
-* setup linting
 * node & web playgrounds
 * setup a publish script
+* set this up:
+  https://hackernoon.com/these-6-essential-tools-will-maintain-your-npm-modules-for-you-4cbbee88e0cb
+* build to dist
+* publish to npm
 
 TODO:
-
 * explain how to add fetch for nodejs
-* 
 * additional header handling (localization etc.)
 * a way to handle rate limiting
   - rate limiting headers only exist in node (possibly make rate limiting utils, look up how rate limiting translates to the end user)

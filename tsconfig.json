@@ -6,7 +6,7 @@
         "outDir": "dist/", /* Redirect output structure to the directory. */
         "module": "commonjs", /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */
         "moduleResolution": "Node",
-        // "lib": ["es2017", "DOM"],
+        "lib": ["DOM", "dom.iterable"],
         "declaration": true, /* Generates corresponding '.d.ts' file. */
         "importHelpers": true, /* Import emit helpers from 'tslib'. */
         "jsx": "react", /* Specify JSX code generation: 'preserve', 'react-native', or 'react'. */
@@ -50,8 +50,13 @@
         // "preserveConstEnums": false,
         "removeComments": false,
         "strictBindCallApply": true,
+        "suppressImplicitAnyIndexErrors": true
         // "suppressExcessPropertyErrors": false,
         // "suppressImplicitAnyIndexErrors": false,
         // "useDefineForClassFields": false
-    }
+    },
+    "exclude": [
+        "node_modules",
+        "scripts"
+    ]
 }

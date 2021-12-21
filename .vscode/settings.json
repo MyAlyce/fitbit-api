@@ -1,11 +1,23 @@
 {
     "cSpell.words": [
+        "esbuild",
         "fitbit",
         "fullname",
+        "ifaces",
         "Intraday",
         "KINDAHARD",
         "Leaderboard",
         "Millis",
+        "outdir",
         "Vals"
-    ]
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules": true
+    }
 }
