@@ -1,9 +1,7 @@
-import type { BuildOptions } from 'esbuild';
 import { networkInterfaces } from 'os';
 import browserSync from "browser-sync";
 import historyApiFallback = require('connect-history-api-fallback');
-// import { build as esbuild } from 'esbuild';
-import { remove, mkdir, copy, readFile, writeFile, existsSync, ensureDirSync } from 'fs-extra';
+import { copy, writeFile, existsSync, ensureDirSync } from 'fs-extra';
 import path, { join, resolve } from 'path';
 import { debounceTimeOut, wait } from '@giveback007/util-lib';
 import { BuilderUtil, transpileBrowser } from './build.util';
@@ -57,10 +55,10 @@ export const browserFiles = () => ({
 const { log } = console;`,
 
     'index.scss': /* scss */ '',
-})
+});
 
 
-export async function browserPlayground(options: {
+export async function browserPlayground(opts: {
     fromDir?: string;
     entryFile?: string;
     toDir?: string;
@@ -69,25 +67,23 @@ export async function browserPlayground(options: {
     jsExts?: string[];
     projectRoot?: string;
     copyFiles?: string[];
+    port?: number;
 } = {}) {
     log('STARTING...');
 
-    const {
-        fromDir = 'playground/browser',
-        entryFile = 'index.tsx',
-        toDir = '.temp/browser',
-        watchOtherDirs = ['src'],
-        jsExts = ['tsx', 'ts', 'js', 'jsx'],
-        cssExts = ['sass', 'scss', 'css'],
-        projectRoot = '../',
-        copyFiles = ['fav.ico']
-    } = options;
+    const port = opts.port || 3333;
+    const fromDir = resolve(opts.fromDir || 'playground/browser');
+    const entryFile = join(fromDir, 'index.tsx');
+    const toDir = resolve(opts.toDir || '.temp/browser');
+    const watchOtherDirs = (opts.watchOtherDirs || ['src']).map((dir) => path.resolve(dir));
+    const jsExts = ['tsx', 'ts', 'js', 'jsx'];
+    const cssExts = ['sass', 'scss', 'css'];
+    const projectRoot = path.resolve(opts.projectRoot || './');
+    const copyFiles = (opts.copyFiles || ['fav.ico', 'index.html']);
 
     // Prepare the playground folders with files //
-    [fromDir, toDir].forEach(async dir => {
-        ensureDirSync(dir);
-        await copy(join('assets/fav.ico'), join(dir, 'fav.ico'));
-    });
+    [fromDir, toDir].forEach(async dir => ensureDirSync(dir));
+    await copy(join('assets/fav.ico'), join(fromDir, 'fav.ico'));
 
     Object.entries(browserFiles()).forEach(([fileName, txt]) => {
         if (!existsSync(join(fromDir, fileName)))
@@ -112,19 +108,20 @@ export async function browserPlayground(options: {
         buildFct: () => transpileBrowser(entryFile, toDir, { changeBuildOpts: { incremental: true } })
     });
 
-    // Create browserSync
-    const bs = browserSync.create('Browser-Playground').init({
+    // Create browserSync //
+    const bs = browserSync.create('Browser-Playground');
+    bs.init({
         server: toDir,
         middleware: [ historyApiFallback() ],
         reloadDelay: 0,
         reloadDebounce: 150,
         reloadOnRestart: true,
-        port: 4000,
+        port,
         ghostMode: false,
         host: network(),
     });
 
-    // Setup the watchers
+    // Setup watchers //
     const allWatchDirs = [fromDir, ...watchOtherDirs.map(dir => resolve(dir))];
     const jsWatch: string[] = [];
     const cssWatch: string[] = [];
@@ -170,15 +167,15 @@ export async function browserPlayground(options: {
         async () => watchHandler('css')
     );
 
-    // Start
+    // Start //
     await builder.copyUtil?.watchCopyFiles(() => bs.reload("*.html"));
 
     await wait(0);
     await builder.build();
-    bs.reload("index.html");
+    bs.reload("*.html");
 }
 
 
-function nodejsPlayGround() {
+// function nodejsPlayGround() {
 
-}
+// }

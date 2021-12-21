@@ -1,5 +1,3 @@
-import { hasKey, isType, minAppend, getDayStartEnd, days, objRemoveKeys, Dict, objKeyVals, nonValue } from '@giveback007/util-lib';
-import { Api } from 'rest-api-handler';
 import type { Activity, ActivityGoals, ActivityIntradayResource, ActivityIntradayResourceObj, ActivityLog, ActivityResource, ActivityResourceObj, ActivitySummary, ActivityType, ActivityTypeCategory, FavoriteActivity, LifetimeActivity, RecentActivity } from './types/Activity.type';
 import type { Badge } from './types/Badges.type';
 import type { Alarm, Device } from './types/Devices.type';
@@ -12,6 +10,8 @@ import type { FatLog, FatGoal, WeightLog, WeightGoal } from './types/Weight.type
 import type { FoodLocale, FoodUnit, Food, CustomFood, FrequentFood, FoodLog, WaterLog, WaterDaySummary, FoodDaySummary, Meal, WaterGoal, FoodGoal } from './types/Nutrition.type';
 import type { Friend, LeaderboardFriend } from './types/Friends.type';
 import type { Subscription, SubscriptionCollection, SubscriptionOpts } from './types/Subscription.type';
+import { hasKey, isType, minAppend, getDayStartEnd, days, objRemoveKeys, Dict, objKeyVals, nonValue } from '@giveback007/util-lib';
+import { Api } from 'rest-api-handler';
 
 /** Turns a dictionary obj into url params
  * 
@@ -61,7 +61,7 @@ const toDate = (anyDate: AnyDate) => {
     }
 
     return dt;
-}
+};
 
 function dayAndTime(time: AnyDate, useSeconds = false): [string, string] {
     const dt = toDate(time);
@@ -125,7 +125,7 @@ export class FitbitApi {
                     :
                     { beforeDate: dayAndTime(opts.beforeDate)[0], sort: opts.sort || 'desc' }
                 )
-            }
+            };
             
             if (params.limit > 100 || params.limit < 1) throw new Error(`Invalid limit: ${params.limit}, needs to be between 1 to 100`);
             const url = this.url(1.2, `sleep/list.json${dictToUrlParams(params)}`);
@@ -152,7 +152,7 @@ export class FitbitApi {
             const [date, startTime] = dayAndTime(time);
             const url = this.url(1.2, `sleep.json${dictToUrlParams({ duration, date, startTime })}`);
             
-            return this.handleData<{ sleep: Sleep; }>(() => this.api.post(url))
+            return this.handleData<{ sleep: Sleep; }>(() => this.api.post(url));
         },
 
         /** Returns a list of a user's sleep log entries for a given date.
@@ -246,7 +246,7 @@ export class FitbitApi {
             return this.handleData<{
                 "activities-heart": HeartRate[];
                 "activities-heart-intraday": HeartRateIntraday;
-            }>(() => this.api.get(url))
+            }>(() => this.api.get(url));
         },
     } as const;
 
@@ -409,7 +409,7 @@ export class FitbitApi {
             const [date, time] = dayAndTime(opts.time, true);
             const url = this.url(1, `body/log/${opts.data}.json${dictToUrlParams({ [opts.data]: opts.unit, date, time })}`);
 
-            return this.handleData<Data extends 'fat' ? { fatLog: FatLog; } : { weightLog: WeightLog; }>(() => this.api.post(url))
+            return this.handleData<Data extends 'fat' ? { fatLog: FatLog; } : { weightLog: WeightLog; }>(() => this.api.post(url));
         },
 
         /** Deletes a body fat or weight log entry
@@ -492,7 +492,7 @@ export class FitbitApi {
                     :
                     { beforeDate: dayAndTime(opts.beforeDate)[0], sort: opts.sort || 'desc' }
                 ),
-            }
+            };
             
             if (params.limit > 100 || params.limit < 1) throw new Error(`Invalid limit: ${opts.limit}, needs to be a number between 1 to 100`);
             const url = this.url(1, `activities/list.json${dictToUrlParams(params)}`);
@@ -617,7 +617,7 @@ export class FitbitApi {
                 url = this.url(1, `activities/${opts.data}/date/${start[0]}/${end[0]}/${opts.detailLevel}/time/${start[1]}/${end[1]}.json`);
             }
 
-            return this.handleData<ActivityIntradayResourceObj<Data>>(() => this.api.get(url))
+            return this.handleData<ActivityIntradayResourceObj<Data>>(() => this.api.get(url));
         },
 
     } as const;
@@ -861,7 +861,7 @@ export class FitbitApi {
 
             this.handleData<
                 O['data'] extends 'water' ? { waterLog: WaterLog } : { foodLog: FoodLog }
-            >(() => this.api.post(this.url(1, `foods/log${data === 'water' ? '/water' : ''}/${logId}.json${dictToUrlParams(params)}`)))
+            >(() => this.api.post(this.url(1, `foods/log${data === 'water' ? '/water' : ''}/${logId}.json${dictToUrlParams(params)}`)));
         },
 
 
@@ -1004,7 +1004,7 @@ export class FitbitApi {
                 Data extends 'food' ? { "foods-log-caloriesIn": DateVal[]; } : { "foods-log-water": DateVal[]; }
             >(() => this.api.get(url));
         },
-    }
+    };
 
     /** Every time a Fitbit user opens the Fitbit mobile application, the Fitbit device
      * automatically syncs to fitbit.com. The average user syncs their Fitbit device several

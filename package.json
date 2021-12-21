@@ -13,7 +13,7 @@
     "test": "---TODO---",
     "lint": "eslint ./src --ext .ts",
     "playground:node": "---TODO---",
-    "playground:web": "node -r esbuild-register esbuild.build.ts playground:browser"
+    "playground:web": "node --trace-warnings -r esbuild-register esbuild.build.ts playground:browser"
   },
   "dependencies": {
     "@giveback007/util-lib": "0.23.0",
@@ -26,6 +26,7 @@
     "@types/node": "^17.0.2",
     "@typescript-eslint/eslint-plugin": "^5.8.0",
     "@typescript-eslint/parser": "^5.8.0",
+    "esbuild-plugin-postcss2": "0.1.0",
     "browser-sync": "^2.27.7",
     "esbuild": "^0.14.6",
     "esbuild-register": "^3.2.1",

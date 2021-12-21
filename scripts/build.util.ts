@@ -1,4 +1,5 @@
 import type { BuildOptions, BuildResult } from 'esbuild';
+import postCssPlugin from "esbuild-plugin-postcss2";
 import { build as esbuild } from 'esbuild';
 import { Dict, isType } from '@giveback007/util-lib';
 import { copy, lstat, mkdir, remove } from 'fs-extra';
@@ -29,7 +30,7 @@ export class BuilderUtil {
 
     constructor(opts: BuilderOpt) {
         this.projectRoot = path.resolve(opts.projectRoot);
-        this.fromDir = path.resolve(opts.toDir);
+        this.fromDir = path.resolve(opts.fromDir);
         this.toDir = path.resolve(opts.toDir);
         this.buildFct = opts.buildFct;
 
@@ -38,7 +39,7 @@ export class BuilderUtil {
             projectRoot: this.projectRoot,
             fromDir: this.fromDir,
             toDir: this.toDir,
-            simulateRoot: true,
+            // simulateRoot: true,
         });
     }
 
@@ -90,11 +91,11 @@ export type CopyFilesUtilOpts = {
     projectRoot: string;
     fromDir: string; // eg: backend
     toDir: string; // .temp
-    simulateRoot: boolean;// true: "./temp/backend", false: "./temp"
+    // simulateRoot: boolean;// true: "./temp/backend", false: "./temp"
 }
 
 export class CopyFilesUtil {
-    private readonly projectRoot: string;
+    // private readonly projectRoot: string;
     private readonly fromDir: string; // eg: backend
     private readonly toDir: string; // .temp
     private readonly copyFiles: {
@@ -103,17 +104,18 @@ export class CopyFilesUtil {
     }[] = [];
 
     constructor(opts: CopyFilesUtilOpts) {
-        this.projectRoot = path.resolve(opts.projectRoot);
+        // this.projectRoot = path.resolve(opts.projectRoot);
         this.fromDir = path.resolve(opts.fromDir);
         this.toDir = path.resolve(opts.toDir);
 
-        if (opts.simulateRoot) // eg: './.temp/frontend'
-            this.toDir = path.join(this.toDir, this.fromDir.replace(this.projectRoot, ''));
+        // if (opts.simulateRoot) // eg: './.temp/frontend'
+        //     this.toDir = path.join(this.toDir, this.fromDir.replace(this.projectRoot, ''));
         
         const fls = isType(opts.copyFiles, 'string') ? [opts.copyFiles] : opts.copyFiles;
-            
-        fls.forEach((fl) => this.copyFiles
-            .push({ from: path.join(this.fromDir, fl), to: path.join(this.toDir, fl) }));
+
+        fls.forEach((fl) => {
+            this.copyFiles.push({ from: path.join(this.fromDir, fl), to: path.join(this.toDir, fl) });
+        });
     }
 
     private copyIsReady = false;
@@ -186,7 +188,7 @@ export const transpileBrowser: BrowserTranspiler = async (entryFile, toDir, opts
         })(),
         bundle: true,
         minify: true,
-        // plugins: [postCssPlugin({ plugins: [ (x: any) => x ] }),],
+        plugins: [postCssPlugin({ plugins: [ (x: unknown) => x ] }),],
         loader: {
             '.png': 'file',
             '.svg': 'file',
