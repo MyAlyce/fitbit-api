@@ -1,0 +1,14 @@
+{
+  "name": "fitbit-api",
+  "version": "0.1.0",
+  "main": "index.js",
+  "engines": {
+    "node": ">=14"
+  },
+  "scripts": {},
+  "devDependencies": {},
+  "dependencies": {
+    "@giveback007/util-lib": "0.23.0",
+    "rest-api-handler": "^2.21.9"
+  }
+}
