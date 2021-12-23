@@ -1,15 +1,16 @@
 {
-  "name": "fitbit-api",
+  "name": "@giveback007/fitbit-api",
   "version": "0.1.0",
   "description": "A fitbit web-api utility that is meant to be comprehensive and type-safe",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": ["/dist", "/src"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MyAlyce/fitbit-api"
   },
   "scripts": {
-    "publish-script": "---TODO---",
+    "publish-script": "yarn run lint && yarn run build && npm publish",
     "test": "---TODO---",
     "build": "node --trace-warnings -r esbuild-register esbuild.build.ts build && tsc",
     "lint": "eslint ./src --ext .ts",

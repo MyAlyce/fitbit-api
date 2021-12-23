@@ -35,9 +35,9 @@ api.user.getProfile().then(profile => console.log(profile));
 ```
 
 ## Automatic Token Refresh
-Pass in a `getNewAccessToken` function as a third argument to automatically be called on `"expired_token"` or `"invalid_token"` errors.
+Pass in a function as a third argument, it will automatically be called on `"expired_token"` or `"invalid_token"` errors.
 
-If `getNewAccessToken` function fails -> returns an error object with `"expired_token"` or `"invalid_token"`.
+If the refresh function fails -> returns an error object with `"expired_token"` or `"invalid_token"`.
 
 If new `"<access-token>"` is successfully retrieved the api will retry the call it first failed on.
 
