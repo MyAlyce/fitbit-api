@@ -79,6 +79,8 @@ new FitbitApi("<access-token>", "<fitbit-user-id>", async () => {
 ## Typescript & Intellisense
 All data is typed and api endpoint with more complex interface arguments are boiled down to be easier to understand with the use intellisense.
 
+![Typescript and intellisense](https://github.com/MyAlyce/fitbit-api/blob/main/public/intellisense.gif)
+
 ## Error Handling
 Successful responses are wrapped in a success object:
 ```typescript
@@ -124,6 +126,11 @@ Make sure to set up a subscriber endpoint with fitbit were you manage fitbit api
 
 For more information: https://dev.fitbit.com/build/reference/web-api/developer-guide/using-subscriptions/
 
+## Developer Discord
+This project is by the [MyAlyce team](https://github.com/myalyce). If you have any questions join us in our discord:
+
+[Invitation Link](https://discord.gg/bbA8Nfd7de), use `#fitbit_integration` channel for fitbit api specific things.
+
 ## TODOs
 QUICK TODOS:
 * setup a publish script
@@ -133,16 +140,12 @@ QUICK TODOS:
 * chart based api data
 
 TODO:
-* explain how to add fetch for nodejs
 * additional header handling (localization etc.)
 * a way to handle rate limiting
   - rate limiting headers only exist in node (possibly make rate limiting utils, look up how rate limiting translates to the end user)
 * tests
 * set up subscription endpoint on alyce
 * research some form of swagger api change detection
-* document:
-  - examples of how to use on node js & browser
-  - examples of how use the token refresh feature
 * turn everything from fitbit into package. (eg. auth on nodejs & browser side)
   - separate out parts that don't have node dependencies &import the non-node dependent parts with node parts.
 * add a simple way to add-in/expose fitbit api endpoints. 

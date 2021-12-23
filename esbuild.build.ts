@@ -1,7 +1,6 @@
-import { BuilderUtil, ProcessManager } from './scripts/build.util';
+import { BuilderUtil } from './scripts/build.util';
 import { browserPlayground, nodejsPlayGround } from './scripts/scripts';
-import { resolve } from 'path';
-const { log } = console;
+// const { log } = console;
 
 (async function run([type]: string[]) {
     switch (type) {
