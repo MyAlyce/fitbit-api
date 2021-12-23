@@ -234,7 +234,7 @@ export async function nodejsPlayGround(opts: {
     await builder.build();
     await builder.copy();
     
-    const app = new ProcessManager(outFile);
+    const app = new ProcessManager('node', [outFile]);
     
     jsWatcher.on('all', () => {
         watchHandler({ type: 'js' });

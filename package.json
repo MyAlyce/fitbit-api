@@ -11,6 +11,7 @@
   "scripts": {
     "publish-script": "---TODO---",
     "test": "---TODO---",
+    "build": "node --trace-warnings -r esbuild-register esbuild.build.ts build && tsc",
     "lint": "eslint ./src --ext .ts",
     "playground:node": "node --trace-warnings -r esbuild-register esbuild.build.ts playground:nodejs",
     "playground:web": "node --trace-warnings -r esbuild-register esbuild.build.ts playground:browser"

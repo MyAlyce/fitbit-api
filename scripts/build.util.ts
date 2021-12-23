@@ -20,7 +20,7 @@ export type BuilderOpt = {
     projectRoot: string;
     fromDir: string;
     toDir: string;
-    buildFct: () => Promise<BuildResult>;
+    buildFct: () => Promise<BuildResult | void>;
     copyFiles?: string[];
 }
 
@@ -28,7 +28,7 @@ export class BuilderUtil {
     private readonly projectRoot: string;
     private readonly fromDir: string;
     private readonly toDir: string;
-    private readonly buildFct: () => Promise<BuildResult>;
+    private readonly buildFct: () => Promise<BuildResult | void>;
 
     private readonly copyFiles: CopyFromTo[] = [];
 
@@ -47,7 +47,7 @@ export class BuilderUtil {
     private resolver: (val: 'bounce' | 'built') => void = (_) => void(0);
     private buildTimeoutId: NodeJS.Timeout | undefined;
     buildDebounce(logTime = true) {
-        clearTimeout(this.buildTimeoutId as (number | undefined));
+        clearTimeout(this.buildTimeoutId);
         this.resolver('bounce');
 
         this.buildTimeoutId = setTimeout(async () => {
@@ -294,10 +294,12 @@ export function network() {
 }
 
 export class ProcessManager {
-    app: ChildProcessWithoutNullStreams;
+    private app: ChildProcessWithoutNullStreams;
     constructor(
-        private readonly entryFile: string,
+        private readonly command: string,
+        private readonly args?: string[],
     ) {
+        log(command);
         // TODO source maps
         this.app = this.spawnChild();
         this.init();
@@ -311,7 +313,7 @@ export class ProcessManager {
 
     kill = () => new Promise<void>(res => {
         const isRunning = isType(this.app.exitCode, 'null');
-
+        
         const finalize = () => {
             this.app.removeAllListeners();
             this.app.unref();
@@ -320,7 +322,7 @@ export class ProcessManager {
 
         if (isRunning) {
             this.app.once('exit', finalize);
-            this.app.kill('SIGINT');
+            this.app.kill();
         } else {
             finalize();
         }
@@ -335,5 +337,5 @@ export class ProcessManager {
         ));
     };
 
-    private spawnChild = () => spawn('node', [this.entryFile]);
+    private spawnChild = () => spawn(this.command, this.args || []);
 }

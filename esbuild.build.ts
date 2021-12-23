@@ -1,16 +1,25 @@
+import { BuilderUtil, ProcessManager } from './scripts/build.util';
 import { browserPlayground, nodejsPlayGround } from './scripts/scripts';
-
-// const { log } = console;
+import { resolve } from 'path';
+const { log } = console;
 
 (async function run([type]: string[]) {
     switch (type) {
         case 'playground:browser':
-            browserPlayground();
-            break;
+            return browserPlayground();
         case 'playground:nodejs':
-            nodejsPlayGround();
-            break;
-        default:
+            return nodejsPlayGround();
+        case 'build': {
+            const builder = new BuilderUtil({
+                buildFct: () => void(0),
+                fromDir: './src',
+                toDir: './dist',
+                projectRoot: '.',
+            });
+
+            builder.cleanToDir();
+            return;
+        } default:
             throw new Error(`"${type}" not implemented`);
     }
 })(process.argv.slice(2));

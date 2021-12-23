@@ -92,7 +92,7 @@ export class FitbitApi {
         private accessToken: string,
         private fitBitUserId: string = '-',
         /** Optional function that will attempt to auto refresh the token when expired */
-        private getToken?: () => Promise<string>
+        private getToken?: () => Promise<string> | string
     ) {
         this.setAccessToken(accessToken);
     }
@@ -1025,7 +1025,7 @@ export class FitbitApi {
      * 
      * https://dev.fitbit.com/build/reference/web-api/subscription/
      * 
-     * NOTE: This can't be used with browser code. Make sure to set up a subscriber endpoint with fitbit
+     * NOTE: This can't be accessed in the browser. Make sure to set up a subscriber endpoint with fitbit
      * were you manage fitbit api app credentials `https://dev.fitbit.com/apps`. To add this to an existing
      * application use the `Edit Application Settings` button.
      */
