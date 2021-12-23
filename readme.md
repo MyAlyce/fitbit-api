@@ -111,6 +111,22 @@ And an error response will return an error object:
 }
 ```
 
+## Date Handling
+Another quality of life implementation is how this api handles dates. When needing to input a date you will often see the `AnyDate` type. This allows the date to be passed as a variety of inputs. 
+
+```typescript
+type DateObj = { y: number; m?: number; d?: number, hr?: number, min?: number, sec?: number, ms?: number };
+type AnyDate = string | number | Date | 'today' | 'now' | 'yesterday' | DateObj;
+
+const date = 'today' || 'now' || 'yesterday' // -> ✔️
+const date = 1640289705866 // -> ✔️
+const date = 'Dec 23 2021 15:00:02' || '2021/12/23' || '2021 12 23' || ... // -> ✔️
+const date = { y: 2021 } || { y: 2021, m: 12, d: 23 } || ... // -> ✔️
+const date = new Date() // -> ✔️
+const date = 'invalid date string' // -> ❌ throw new Error('Invalid Date')
+const date = NaN // -> ❌ throw new Error('Invalid Date')
+```
+
 ## Headers
 Certain fitbit response headers (such as rate limiting) are unsupported by the browser and therefore won't show up when the api is called.
 
@@ -126,8 +142,32 @@ Make sure to set up a subscriber endpoint with fitbit were you manage fitbit api
 
 For more information: https://dev.fitbit.com/build/reference/web-api/developer-guide/using-subscriptions/
 
+## getLogList() & Generators
+This library uses generators to load `.sleep.getLogList()` for `/sleep/get-sleep-log-list/` and `.activity.getLogList()` for `/activity/get-activity-log-list/`, these endpoints limit data at 100 objects per call and return a `"next"` link.
+
+To make life easier you can keep calling the `generator.next()` to automatically retrieve the next set of data. 
+
+```typescript
+const generator = await api.activity.getLogList({ beforeDate: 'now' });
+await generator.next();
+// ->
+{
+    value: {
+        allData: [{...}] // the full collection of all .next() calls.
+        lastResponse: {
+            "type": "SUCCESS",
+            "isSuccess": true,
+            "code": 200,
+            "data": {...}
+        ],
+        totalCalls: 1 // the amount of times .next() called up to this obj.
+    },
+    done: false // this will be `true` when there's no more data to retrieve.
+}
+```
+
 ## Developer Discord
-This project is by the [MyAlyce team](https://github.com/myalyce). If you have any questions join us in our discord:
+This project is by the [MyAlyce team](https://github.com/myalyce). If you have any questions join us on discord:
 
 [Invitation Link](https://discord.gg/bbA8Nfd7de), use `#fitbit_integration` channel for fitbit api specific things.
 
