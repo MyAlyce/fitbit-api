@@ -1,14 +1,18 @@
 import type { BuildOptions, BuildResult } from 'esbuild';
+import { networkInterfaces } from 'os';
 import postCssPlugin from "esbuild-plugin-postcss2";
 import { build as esbuild } from 'esbuild';
-import { Dict, isType } from '@giveback007/util-lib';
+import { debounceTimeOut, Dict, isType } from '@giveback007/util-lib';
 import { copy, lstat, mkdir, remove } from 'fs-extra';
-import path from 'path';
+import path, { join } from 'path';
 import chokidar from 'chokidar';
 import chalk from 'chalk';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 
 const { log } = console;
 
+type CopyFromTo = { from: string; to: string; }
+export type CopyAction = 'add'|'addDir'|'change'|'unlink'|'unlinkDir'|'copy';
 export type NodeTranspiler = (files: string[], toDir: string, opts?: {changeBuildOpts?: BuildOptions}) => Promise<BuildResult>;
 export type BrowserTranspiler = (entryFile: string, toDir: string, opts?: {changeBuildOpts?: BuildOptions, envVars?: Dict<string>}) => Promise<BuildResult>;
 
@@ -26,7 +30,7 @@ export class BuilderUtil {
     private readonly toDir: string;
     private readonly buildFct: () => Promise<BuildResult>;
 
-    public readonly copyUtil?: CopyFilesUtil;
+    private readonly copyFiles: CopyFromTo[] = [];
 
     constructor(opts: BuilderOpt) {
         this.projectRoot = path.resolve(opts.projectRoot);
@@ -34,16 +38,13 @@ export class BuilderUtil {
         this.toDir = path.resolve(opts.toDir);
         this.buildFct = opts.buildFct;
 
-        if (opts.copyFiles?.length) this.copyUtil = new CopyFilesUtil({
-            copyFiles: opts.copyFiles,
-            projectRoot: this.projectRoot,
-            fromDir: this.fromDir,
-            toDir: this.toDir,
-            // simulateRoot: true,
-        });
+        const fls = isType(opts.copyFiles, 'string') ? [opts.copyFiles] : opts.copyFiles || [];
+
+        fls.forEach((fl) =>
+            this.copyFiles.push({ from: join(this.fromDir, fl), to: join(this.toDir, fl) }));
     }
 
-    private resolver: (val: 'bounce' | 'built') => void = (_) => void(_);
+    private resolver: (val: 'bounce' | 'built') => void = (_) => void(0);
     private buildTimeoutId: NodeJS.Timeout | undefined;
     buildDebounce(logTime = true) {
         clearTimeout(this.buildTimeoutId as (number | undefined));
@@ -51,7 +52,7 @@ export class BuilderUtil {
 
         this.buildTimeoutId = setTimeout(async () => {
             const res = this.resolver;
-            await this.build(logTime);
+            await this.build({ logTime });
 
             res('built');
         }, 500);
@@ -59,68 +60,31 @@ export class BuilderUtil {
         return new Promise<'bounce' | 'built'>((res) => this.resolver = res);
     }
 
-    async build(logTime = true) {
-        if (logTime) log(`Building to: ${this.toDir.replace(this.projectRoot, '')} ...`);
-        const timeStart = Date.now();
+    async build(opts: { logTime?: boolean } = {}) {
+        const { logTime = true } = opts;
+
+        const logger = logTime && buildLogStart({ from: this.fromDir, to: this.toDir, root: this.projectRoot });
         await this.buildFct();
         
-        if (logTime) {
-            const t = Date.now() - timeStart;
-            log(`⚡ Built in ${t > 500 ? (t / 1000).toFixed(2) + 's' : t + 'ms'}`);
-        }
+        if (logger) logger.end();
     }
 
     /** cleans "toDir" */
-    async cleanToDir() {
+    cleanToDir = async () => {
         await remove(this.toDir);
         await mkdir(this.toDir, { recursive: true });
-    }
+    };
 
-    startLogger() {
-        const f = (dir: string) => dir.replace(this.projectRoot, '');
-        log(`🏗️ Building '${f(this.fromDir)}'... 🔨 to '${f(this.toDir)}'`);
-    }
+    copy = async () => BuilderUtil.copyFileHandler(this.copyFiles);
 
-    doneLogger(timeStart: number) {
-        log(`✔️ Done in ${((Date.now() - timeStart) / 1000).toFixed(2)}s`);
-    }
-}
+    info = () => ({
+        projectRoot: this.projectRoot,
+        fromDir: this.fromDir,
+        toDir: this.toDir,
+        copyFiles: this.copyFiles,
+    });
 
-export type CopyFilesUtilOpts = {
-    copyFiles: string | string[];
-    projectRoot: string;
-    fromDir: string; // eg: backend
-    toDir: string; // .temp
-    // simulateRoot: boolean;// true: "./temp/backend", false: "./temp"
-}
-
-export class CopyFilesUtil {
-    // private readonly projectRoot: string;
-    private readonly fromDir: string; // eg: backend
-    private readonly toDir: string; // .temp
-    private readonly copyFiles: {
-        from: string;
-        to: string;
-    }[] = [];
-
-    constructor(opts: CopyFilesUtilOpts) {
-        // this.projectRoot = path.resolve(opts.projectRoot);
-        this.fromDir = path.resolve(opts.fromDir);
-        this.toDir = path.resolve(opts.toDir);
-
-        // if (opts.simulateRoot) // eg: './.temp/frontend'
-        //     this.toDir = path.join(this.toDir, this.fromDir.replace(this.projectRoot, ''));
-        
-        const fls = isType(opts.copyFiles, 'string') ? [opts.copyFiles] : opts.copyFiles;
-
-        fls.forEach((fl) => {
-            this.copyFiles.push({ from: path.join(this.fromDir, fl), to: path.join(this.toDir, fl) });
-        });
-    }
-
-    private copyIsReady = false;
-    private copyTimeoutId: NodeJS.Timeout | undefined;
-    async watchCopyFiles(afterCopy?: () => unknown) {
+    watchCopyFiles = (afterCopy?: () => unknown) => {
         const files = this.copyFiles.map(({ from }) => from);
         const f = async () => {
             await this.copy();
@@ -128,49 +92,85 @@ export class CopyFilesUtil {
         };
 
         // TODO: make this more performant by only copying changed files
-        const watcher = chokidar.watch(files).on('all', () => {
-            clearTimeout(this.copyTimeoutId as (number | undefined));
-    
-            this.copyTimeoutId = setTimeout(async () => {
-                if (this.copyIsReady) f();
-            }, 500);
-        }).on('ready', async () => f().then(() => this.copyIsReady = true));
+        const watcher = chokidar.watch(files);
+        
+        const debounce = debounceTimeOut();
+        watcher.once('ready', async () =>
+            f().then(() => watcher.on('all', () => debounce(f, 500))));
 
         [`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`]
         .forEach((eventType) => process.on(eventType, () => {
             watcher.close();
             process.exit();
         }));
+    };
 
-        return watcher;
-    }
+    fileCopyAction = <O extends { file: string; action: CopyAction; }>(actions: O | O[]) => {
+        const arr = (isType(actions, 'array') ? actions : [actions]).map(({ file, action }) => ({
+            from: file, action, to: file.replace(this.fromDir, this.toDir)
+        }));
 
-    async copy() {
-        const files = this.copyFiles;
-        if (!files.length) return;
+        return BuilderUtil.copyFileHandler(arr);
+    };
 
-        const copyPromises = files.map(async (fl) => {
+    static async copyFileHandler<O extends (CopyFromTo & { action?: CopyAction; })>(handle: O | O[]) {
+        const arr = isType(handle, 'array') ? handle : [handle];
+        if (!arr.length) return;
+
+        const promises = arr.map(async (fl) => {
+            const { from, to, action = 'copy' } = fl;
             try {
-                if ((await lstat(fl.from)).isDirectory()) {
-                    await mkdir(fl.to, { recursive: true });
-                }
+                switch (action) {
+                    case 'addDir':
+                        await mkdir(to, { recursive: true });
+                        break;
+                    case 'change':
+                    case 'add':
+                        await copy(from, to);
+                        break;
+                    case 'unlinkDir':
+                    case 'unlink':
+                        await remove(to);
+                        break;
+                    case 'copy':
+                        if ((await lstat(from)).isDirectory())
+                            await mkdir(fl.to, { recursive: true });
 
-                await copy(fl.from, fl.to);
+                        await copy(fl.from, fl.to);
+                        break;
+                    default:
+                        throw new Error(`Unhandled: "${action}"`);
+                }
+                
                 return { fail: false, file: fl };
             } catch (e) {
                 return { fail: true, file: fl };
             }
         });
-        
-        await Promise.all(copyPromises).then((arr) => {
-            arr.forEach((result) => {
-                if (result.fail) {
-                    log(chalk.red`FAILED TO COPY:\nFrom: ${result.file.from}\nTo: ${result.file.to}`);
-                    throw new Error("Failed To Copy");
-                }
-            });
-        });
+
+        (await Promise.all(promises)).forEach((x) => x.fail &&
+            log(chalk.red`FAILED TO [${x.file.action || 'copy'}]:\nFrom: ${x.file.from}\nTo: ${x.file.to}`));
     }
+}
+
+export function buildLogStart(opts: {
+    from: string;
+    to: string;
+    root: string;
+}) {
+    const { from, to, root } = opts;
+    const timeStart = Date.now();
+    log(`> 🔨 ${chalk.blueBright`Building`}: [${chalk.green(from).replace(root, '')}] ${chalk.yellow`-→`} [${chalk.green(to).replace(root, '')}]`);
+
+    return {
+        end: () => {
+            const t = Date.now() - timeStart;
+            const isMs = t < 500;
+            const timeStr = (isMs ? t : (t / 1000).toFixed(2)) + (isMs ? 'ms' : 's');
+
+            log(`> ⚡ ${chalk.blueBright`Built in`}: ${timeStr}`);
+        }
+    };
 }
 
 export const transpileBrowser: BrowserTranspiler = async (entryFile, toDir, opts = {}) => {
@@ -181,7 +181,7 @@ export const transpileBrowser: BrowserTranspiler = async (entryFile, toDir, opts
         entryPoints: [entryFile],
         outdir: toDir,
         define: (() => {
-            // global && window -> globalThis
+            /** global && window -> globalThis */
             const v: Dict<string> = {"global": "globalThis", "window": "globalThis"};
             Object.entries(opts?.envVars || {}).forEach(([k, v]) => v[k] = `"${v}"`);
             return v;
@@ -205,3 +205,135 @@ export const transpileBrowser: BrowserTranspiler = async (entryFile, toDir, opts
         ...opts.changeBuildOpts,
     });
 };
+
+export const browserFiles = () => ({
+    'package.json': /* json */
+`{
+    "name": "playground",
+    "version": "0.0.1",
+    "description": "",
+    "main": "index.js",
+    "author": "",
+    "dependencies": {}
+}`,
+
+    'index.html': /* html */
+`<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <link rel="icon" type="image/png" sizes="256x256" href="fav.ico">
+        <link rel="stylesheet" href="./index.css">
+        <title>Browser Playground</title>
+    </head>
+    <body>
+        <div id='root'></div>
+        <script src='index.js'></script>
+
+        <script>
+            setTimeout(() => {
+                const src = '/browser-sync/browser-sync-client.js';
+
+                const hasBS = Array.from(document.querySelectorAll('script'))
+                .find((x) => x.src.search(src) > -1)
+
+                if (!hasBS) {
+                const browserSyncScript = document.createElement('script');
+                browserSyncScript.src = src;
+                document.body.appendChild(browserSyncScript);
+                }
+            }, 1000)
+        </script>
+    </body>
+</html>`,
+
+    'index.tsx': /* tsx */
+`import { FitbitApi } from '../../src/fitbit.api';
+
+import './index.scss';
+const { log } = console;
+
+const fb = {
+    "token": "",
+    "id": "",
+};
+
+const api = new FitbitApi(fb.token, fb.id);
+api.user.getProfile().then(x => log(x));`,
+
+    'index.scss': /* scss */ '',
+});
+
+export const nodejsFiles = () => ({
+    'server.ts': /* ts */
+`import { FitbitApi } from '../../src/fitbit.api';
+const { log } = console;
+
+const fb = {
+    "token": "",
+    "id": "",
+};
+
+const api = new FitbitApi(fb.token, fb.id);
+api.user.getProfile().then(x => log(x));`
+});
+
+export function network() {
+    let ip: string | undefined;
+    const ifaces = networkInterfaces();
+    const wifiKey = Object.keys(ifaces).find((k) => k.search('Wi-Fi') > -1);
+    if (wifiKey) {
+        const x = ifaces[wifiKey] || [];
+        const y = x.find((x) => x.family === 'IPv4');
+        ip = y?.address;
+    }
+
+    return ip;
+}
+
+export class ProcessManager {
+    app: ChildProcessWithoutNullStreams;
+    constructor(
+        private readonly entryFile: string,
+    ) {
+        // TODO source maps
+        this.app = this.spawnChild();
+        this.init();
+    }
+
+    reload = async () => {
+        await this.kill();
+        this.app = this.spawnChild();
+        this.init();
+    };
+
+    kill = () => new Promise<void>(res => {
+        const isRunning = isType(this.app.exitCode, 'null');
+
+        const finalize = () => {
+            this.app.removeAllListeners();
+            this.app.unref();
+            res(void(0));
+        };
+
+        if (isRunning) {
+            this.app.once('exit', finalize);
+            this.app.kill('SIGINT');
+        } else {
+            finalize();
+        }
+    });
+
+    private init = () => {
+        this.app.stdout.pipe(process.stdout);
+        this.app.stderr.pipe(process.stderr);
+
+        this.app.on('exit', (_: number, signal: NodeJS.Signals) => log(
+            `> ${chalk.green('Nodejs')} App exited with signal: ${chalk.blue(signal)}`,
+        ));
+    };
+
+    private spawnChild = () => spawn('node', [this.entryFile]);
+}

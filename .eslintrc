@@ -12,6 +12,8 @@
     ],
     // "rules": {}
     "rules": {
-      "semi": ["warn", "always"]
+      "semi": ["warn", "always"],
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["off"]
     }
 }

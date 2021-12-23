@@ -1,10 +1,10 @@
 QUICK TODOS:
-* node & web playgrounds
 * setup a publish script
 * set this up:
   https://hackernoon.com/these-6-essential-tools-will-maintain-your-npm-modules-for-you-4cbbee88e0cb
 * build to dist
 * publish to npm
+* chart based api data
 
 TODO:
 * explain how to add fetch for nodejs

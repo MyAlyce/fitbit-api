@@ -7,8 +7,10 @@
         "Intraday",
         "KINDAHARD",
         "Leaderboard",
+        "mets",
         "Millis",
         "outdir",
+        "Unestimated",
         "Vals"
     ],
     "files.exclude": {
