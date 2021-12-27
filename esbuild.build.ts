@@ -1,6 +1,5 @@
 import { BuilderUtil } from './scripts/build.util';
 import { browserPlayground, nodejsPlayGround } from './scripts/scripts';
-// const { log } = console;
 
 (async function run([type]: string[]) {
     switch (type) {
@@ -22,5 +21,5 @@ import { browserPlayground, nodejsPlayGround } from './scripts/scripts';
             throw new Error(`"${type}" not implemented`);
     }
 })(process.argv.slice(2));
-
+// < / ▶
 // setup a type of playground that runs from a 'higher' root & replace node modules version when in playground mode

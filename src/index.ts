@@ -1,3 +1,4 @@
+export * from './data/sleep.chart';
 export * from './fitbit.api';
 export * from './types/Activity.type';
 export * from './types/Badges.type';

@@ -10,6 +10,7 @@
         "mets",
         "Millis",
         "outdir",
+        "smas",
         "Unestimated",
         "Vals"
     ],
@@ -20,6 +21,6 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "**/node_modules": true
+        "**/node_modules": false
     }
 }

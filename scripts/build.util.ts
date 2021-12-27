@@ -2,11 +2,12 @@ import type { BuildOptions, BuildResult } from 'esbuild';
 import { networkInterfaces } from 'os';
 import postCssPlugin from "esbuild-plugin-postcss2";
 import { build as esbuild } from 'esbuild';
-import { debounceTimeOut, Dict, isType } from '@giveback007/util-lib';
+import { debounceTimeOut, Dict, interval, isType } from '@giveback007/util-lib';
 import { copy, lstat, mkdir, remove } from 'fs-extra';
 import path, { join } from 'path';
 import chokidar from 'chokidar';
 import chalk from 'chalk';
+import readline from 'readline';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 
 const { log } = console;
@@ -159,16 +160,28 @@ export function buildLogStart(opts: {
     root: string;
 }) {
     const { from, to, root } = opts;
+    const fromTo = `[${chalk.green(from).replace(root, '')}] ${chalk.yellow`-→`} [${chalk.green(to).replace(root, '')}]`;
+
     const timeStart = Date.now();
-    log(`> 🔨 ${chalk.blueBright`Building`}: [${chalk.green(from).replace(root, '')}] ${chalk.yellow`-→`} [${chalk.green(to).replace(root, '')}]`);
+    const itv = interval(() => {
+        const t = Date.now() - timeStart;
+
+        readline.clearLine(process.stdout, 0);
+        readline.cursorTo(process.stdout, 0, null);
+        process.stdout.write(`> ⌛ ${chalk.blueBright`Building`} ${(t / 1000).toFixed(2)}s: ${fromTo}`);
+    }, 350);
 
     return {
         end: () => {
+            itv.stop();
+            readline.clearLine(process.stdout, 0);
+            readline.cursorTo(process.stdout, 0, null);
+
             const t = Date.now() - timeStart;
             const isMs = t < 500;
             const timeStr = (isMs ? t : (t / 1000).toFixed(2)) + (isMs ? 'ms' : 's');
 
-            log(`> ⚡ ${chalk.blueBright`Built in`}: ${timeStr}`);
+            log(`> ✅ ${chalk.blueBright`Built in`} ${timeStr}: ${fromTo}`);
         }
     };
 }

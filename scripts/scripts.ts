@@ -21,7 +21,7 @@ export async function browserPlayground(opts: {
     port?: number;
     debounceMs?: number;
 } = { }) {
-    log('STARTING...');
+    log('STARTING BUILDER...');
 
     const port = opts.port || 3333;
     const fromDir = resolve(opts.fromDir || 'playground/browser');
@@ -112,8 +112,13 @@ export async function browserPlayground(opts: {
         builder.watchCopyFiles(() => bs.reload("*.html"));
         
     // Start //
-    await wait(0);
-    await builder.build();
+    try {
+        await builder.build();
+    } catch {
+        log(chalk.red`FAILED FIRST BUILD`);
+    }
+
+
     bs.init({
         server: toDir,
         middleware: [ historyApiFallback() ],
@@ -220,12 +225,10 @@ export async function nodejsPlayGround(opts: {
     };
 
     await (new Promise((res) => {
-        let i = 0;
-        if (copyWatcher) {
+        let i = copyWatcher ? 0 : 1;
+        
+        if (copyWatcher)
             copyWatcher.once('ready', (_) => (++i >= 2) && res(_));
-        } else {
-            i++;
-        }
 
         jsWatcher.once('ready', (_) => (++i >= 2) && res(_));
     }));

@@ -1,7 +1,7 @@
 import type { Activity, ActivityGoals, ActivityIntradayResource, ActivityIntradayResourceObj, ActivityLog, ActivityResource, ActivityResourceObj, ActivitySummary, ActivityType, ActivityTypeCategory, FavoriteActivity, LifetimeActivity, RecentActivity } from './types/Activity.type';
 import type { Badge } from './types/Badges.type';
 import type { Alarm, Device } from './types/Devices.type';
-import type { DateVal, WeekDays } from './types/General.type';
+import type { AnyDate, ApiResponse, DateVal, WeekDays } from './types/General.type';
 import type { FitbitError } from './types/FitbitError.type';
 import type { HeartRateIntraday, HeartRate } from './types/HeartRate.type';
 import type { FitbitProfile } from './types/Profile.type';
@@ -10,67 +10,12 @@ import type { FatLog, FatGoal, WeightLog, WeightGoal } from './types/Weight.type
 import type { FoodLocale, FoodUnit, Food, CustomFood, FrequentFood, FoodLog, WaterLog, WaterDaySummary, FoodDaySummary, Meal, WaterGoal, FoodGoal } from './types/Nutrition.type';
 import type { Friend, LeaderboardFriend } from './types/Friends.type';
 import type { Subscription, SubscriptionCollection, SubscriptionOpts } from './types/Subscription.type';
-import { hasKey, isType, minAppend, getDayStartEnd, days, objRemoveKeys, Dict, objKeyVals, nonValue } from '@giveback007/util-lib';
+import type { Dict } from '@giveback007/util-lib';
+import { hasKey, objRemoveKeys } from '@giveback007/util-lib';
 import { Api } from 'rest-api-handler';
+import { dayAndTime, dictToUrlParams } from './utils.general';
 
-/** Turns a dictionary obj into url params
- * 
- * @param dict eg: `{ key1: 1, key2: 'val2' }`
- * @returns eg: `"?key1=1&key2=val2"`
- */
- export function dictToUrlParams(dict: Dict<string | number | boolean>) {
-    let search = '';
-
-    objKeyVals(dict).forEach(({ key, val }, i) =>
-        !nonValue(val) && (search += `${i ? '&' : '?'}${key}=${val}`));
-
-    return search;
-}
-
-/**
- * y - year, eg: `2021`
- * 
- * m - month, use `1` for `January`
- * 
- * d - day, use `1` for `the 1st`
- * 
- * hr - hours, use `0` for `12am / 00h`
- * */
-type DateObj = { y: number; m?: number; d?: number, hr?: number, min?: number, sec?: number, ms?: number };
-type AnyDate = string | number | Date | 'today' | 'now' | 'yesterday' | DateObj;
 type id = string | number;
-
-const fromDateObj = (o: DateObj) => new Date(o.y, (o.m || 1) - 1, o.d || 1, o.hr || 0, o.min || 0, o.sec || 0, o.ms || 0);
-const toDate = (anyDate: AnyDate) => {
-    const dt = 
-        anyDate instanceof Date ? anyDate
-        :
-        anyDate === 'now' ? new Date
-        :
-        anyDate === 'today' ? getDayStartEnd(new Date).start
-        :
-        anyDate === 'yesterday' ? getDayStartEnd(Date.now() - days(1)).start
-        :
-        isType(anyDate, 'number') || isType(anyDate, 'string') ? new Date(anyDate)
-        :
-        fromDateObj(anyDate);
-
-    if (dt.toDateString() === 'Invalid Date') {
-        console.error(`date: "${anyDate.toString()}" is an invalid date`);
-        throw new Error('Invalid Date');
-    }
-
-    return dt;
-};
-
-function dayAndTime(time: AnyDate, useSeconds = false): [string, string] {
-    const dt = toDate(time);
-
-    const dayStr = `${dt.getFullYear()}-${minAppend(dt.getMonth() + 1, 2, '0')}-${minAppend(dt.getDate(), 2, '0')}`;
-    const timeStr = (`${minAppend(dt.getHours(), 2, '0')}:${minAppend(dt.getMinutes(), 2, '0')}` + (useSeconds ? (':' + minAppend(dt.getSeconds(), 2, '0')) : ''));
-    
-    return [dayStr, timeStr];
-}
 
 type Pagination = {
     afterDate?: string;
@@ -107,7 +52,7 @@ export class FitbitApi {
          * 
          * https://dev.fitbit.com/build/reference/web-api/sleep/get-sleep-log-list/
          */
-        getLogList: async (opts: {
+        getLogList: (opts: {
             sort?: 'asc' | 'desc';
             limit?: number;
             offset?: number;
@@ -126,7 +71,6 @@ export class FitbitApi {
                     { beforeDate: dayAndTime(opts.beforeDate)[0], sort: opts.sort || 'desc' }
                 )
             };
-            
             if (params.limit > 100 || params.limit < 1) throw new Error(`Invalid limit: ${params.limit}, needs to be between 1 to 100`);
             const url = this.url(1.2, `sleep/list.json${dictToUrlParams(params)}`);
 
@@ -474,7 +418,7 @@ export class FitbitApi {
          * 
          * https://dev.fitbit.com/build/reference/web-api/activity/get-activity-log-list/
          */
-        getLogList: async (opts: {
+        getLogList: (opts: {
             sort?: 'asc' | 'desc';
             limit?: number;
             offset?: number;
@@ -1058,20 +1002,7 @@ export class FitbitApi {
         this.api.setDefaultHeader('Authorization', `Bearer ${this.accessToken}`);
     }
 
-    private async handleData<T>(dataCall: () => Promise<Response>, nRecur = 0): Promise<({
-        type: "ERROR";
-        isSuccess: false;
-        /** https://dev.fitbit.com/build/reference/web-api/troubleshooting-guide/error-messages/ */
-        error: FitbitError | null;
-    } | {
-        type: "SUCCESS";
-        isSuccess: true;
-        data: T;
-    }) & {
-        code: number;
-        response: Response;
-        headers: Dict<string>;
-    }> {
+    private async handleData<T>(dataCall: () => Promise<Response>, nRecur = 0): Promise<ApiResponse<T>> {
         const response = await dataCall();
         const headers: Dict<string> = {};
 
@@ -1132,10 +1063,9 @@ export class FitbitApi {
         };
     }
 
-    private async pageGenerator<O extends { pagination: Pagination; }, T>(startingUrl: string, dataKey: string) {
-        let lastResponse = await this.handleData<O>(() => this.api.get(startingUrl));
-
+    private pageGenerator<O extends { pagination: Pagination; }, T>(startingUrl: string, dataKey: string) {
         return (async function* (self: FitbitApi) {
+            let lastResponse = await self.handleData<O>(() => self.api.get(startingUrl));
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let allData: T[] = lastResponse.isSuccess ? [...(lastResponse.data as any)[dataKey] as T[]] : [];
