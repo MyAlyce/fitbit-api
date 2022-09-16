@@ -32,6 +32,17 @@ import { FitbitApi } from '@giveback007/fitbit-api';
 const api = new FitbitApi("<access-token>", "<fitbit-user-id>" || "-");
 
 api.user.getProfile().then(profile => console.log(profile));
+
+//api.sleep.
+//api.heartRate.
+//api.user.
+//api.body.
+//api.activity.
+//api.devices.
+//api.friends.
+//api.nutrition.
+//api.subscription.
+//
 ```
 
 ## Automatic Token Refresh
